@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorAccent">@color/eirieBlueLight</color>
+    <color name="colorPrimary">@color/eirieBlue</color>
+    <color name="colorPrimaryDark">@color/meteorGrey</color>
+    <color name="darkAccent">#ff424242</color>
+    <color name="eirieBlue">#ff00b5d5</color>
+    <color name="eirieBlueLight">#ff6fd1e5</color>
+    <color name="meteorGrey">#ff4d4d4d</color>
+    <color name="meteorOrange">#fff26900</color>
+    <color name="orangeDark">#ffde6000</color>
+    <color name="white">#ffffffff</color>
+</resources>

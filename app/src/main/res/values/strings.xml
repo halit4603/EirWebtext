@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_accounts">Manage accounts</string>
+    <string name="action_settings">Settings</string>
+    <string name="add_account">Add account</string>
+    <string name="app_name">eir.ie Webtext</string>
+    <string name="errorText">Say something...</string>
+    <string name="errorTo">Who would you like to send this to?</string>
+    <string name="net_srv_error_snack">Network/Server error. Retry.</string>
+    <string name="no_accounts_spinner">No accounts. Open settings.</string>
+    <string name="title_activity_accounts">AccountsActivity</string>
+    <string name="title_activity_manage_accounts">ManageAccountsActivity</string>
+    <string name="too_many_snack">Too many login attempts. Try again later.</string>
+    <string name="verifying_details">Verifying details...</string>
+    <string name="wrong_user_pass_snack">Wrong email or password. Retry.</string>
+    <string name="webtext_sent">Webtext sent!</string>
+    <string name="webtext_error">Couldn\'t send Webtext! Try again.</string>
+    <string name="permissions_dialog_title">Permission request</string>
+    <string name="permissions_dialog_message"><![CDATA[Let me explain why I need the following permissions:<br><br/><b>Contacts: </b> I use this permission to retrieve contacts from your phone book, this allows the app to automatically lookup the number given the contact name.]]></string>
+    <string name="permissions_dialog_yes">I understand</string>
+</resources>

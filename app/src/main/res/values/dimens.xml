@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="activity_horizontal_margin">16.0dip</dimen>
+    <dimen name="activity_vertical_margin">16.0dip</dimen>
+    <dimen name="fab_content_size">24.0dip</dimen>
+    <dimen name="fab_margin">16.0dip</dimen>
+    <dimen name="fab_size_mini">40.0dip</dimen>
+    <dimen name="fab_size_normal">56.0dip</dimen>
+    <dimen name="fab_translation_z_pressed">6.0dip</dimen>
+    <dimen name="futuresimple_fab_shadow_offset">3.0dip</dimen>
+    <dimen name="half_fab_content_size">12.0dip</dimen>
+    <dimen name="progress_arc_stroke_width">2.0dip</dimen>
+</resources>
