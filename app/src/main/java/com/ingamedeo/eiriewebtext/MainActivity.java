@@ -413,7 +413,9 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
         @Override
         public void changeCursor(Cursor cursor) {
-            cursor.close();
+            if (cursor!=null) {
+                cursor.close();
+            }
         }
     }
 
