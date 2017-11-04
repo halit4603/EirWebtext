@@ -13,6 +13,10 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.ingamedeo.eiriewebtext.utils.DatabaseUtils;
+import com.ingamedeo.eiriewebtext.utils.NetworkUtils;
+import com.ingamedeo.eiriewebtext.utils.UIUtils;
+
 import java.net.CookieManager;
 
 import butterknife.BindView;
@@ -45,13 +49,13 @@ public class AccountsActivity extends AppCompatActivity {
     }
 
     private void initUI(Bundle savedInstanceState) {
-        header.setText(Html.fromHtml("<b>Note:</b> This app currently supports ex Meteor customers only!"));
+        header.setText(Html.fromHtml(getString(R.string.header_only_meteor)));
 
         addAccount.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
-                if (Utils.runInputCheck(email) && Utils.runInputCheck(password)) {
+                if (UIUtils.runInputCheck(email) && UIUtils.runInputCheck(password)) {
                     new VerifyLoginTask().execute(getStringFromEditText(email), getStringFromEditText(password));
                 }
 
@@ -75,7 +79,7 @@ public class AccountsActivity extends AppCompatActivity {
         protected void onPreExecute() {
             super.onPreExecute();
 
-            Utils.hideKeyboard(AccountsActivity.this);
+            UIUtils.hideKeyboard(AccountsActivity.this);
 
             addAccount.setText(R.string.verifying_details);
             addAccount.setClickable(false);
@@ -87,23 +91,25 @@ public class AccountsActivity extends AppCompatActivity {
 
             CookieManager msCookieManager = new CookieManager();
 
-            Constants.EirLoginResult login = Utils.loginToEir(params[0], params[1], msCookieManager);
+            Constants.EirLoginResult login = NetworkUtils.loginToEir(params[0], params[1], msCookieManager);
 
             if (login == Constants.EirLoginResult.SUCCESS) {
 
-                String[] customerFullNames = Utils.getCustomerFullName(msCookieManager);
-                String[] customerLines = Utils.getCustomerLines(msCookieManager);
+                String[] customerFullNames = NetworkUtils.getCustomerFullName(msCookieManager);
+                String[] customerLines = NetworkUtils.getCustomerLines(msCookieManager);
 
-                //Fixes crashes (14/10/17)
-                if (customerLines==null) {
+                //Fixes crashes (14/10/17) | Add data integrity check 02/11
+                if (customerLines==null || customerFullNames.length!=customerLines.length) {
                     return Constants.EirLoginResult.GENERIC_ERROR;
                 }
 
-                //Array to String ( separator ; )
-                String customerLinesString = TextUtils.join(";", customerLines);
+                for (int i=0; i<customerLines.length; i++) {
 
-                for (String fullname : customerFullNames) {
-                    Utils.getDbAdapter(AccountsActivity.this).addAccount(fullname, params[0], params[1], customerLinesString);
+                    if (customerFullNames[i] == null || customerLines[i] == null) {
+                        continue;
+                    }
+
+                    DatabaseUtils.getDbAdapter(AccountsActivity.this).addAccount(customerFullNames[i], params[0], params[1], customerLines[i]);
                 }
             }
 
@@ -120,7 +126,6 @@ public class AccountsActivity extends AppCompatActivity {
 
             switch (result) {
                 case SUCCESS:
-
                     Intent returnIntent = new Intent();
                     returnIntent.putExtra("login", true);
                     setResult(Activity.RESULT_OK,returnIntent);

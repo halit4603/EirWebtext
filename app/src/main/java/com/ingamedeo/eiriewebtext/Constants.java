@@ -12,13 +12,15 @@ public class Constants {
 
     public final static String TAG = "meteor";
     public final static String PACKAGE = "com.ingamedeo.eiriewebtext";
+    public final static String ADMOB_APP_ID = "ca-app-pub-8649408349532515~7668946235";
 
     public static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
     public static final String EMPTY = "";
 
     public enum TableSelect {
         WEBTEXT,
-        ACCOUNTS
+        ACCOUNTS,
+        ACCOUNTS_DISTINCT
     }
 
     public enum RequestType {
@@ -56,5 +58,8 @@ public class Constants {
 
     public static final String[] myPermisssions = new String[]{Manifest.permission.READ_CONTACTS};
     public static final int MY_PERMISSIONS_REQUEST = 5;
+
+    public static final int MAX_WEBTEXT_LEN = 480;
+    public static final int MAX_WEBTEXT_NUM = 3;
 
 }

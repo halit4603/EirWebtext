@@ -23,6 +23,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.ingamedeo.eiriewebtext.db.AccountsTable;
+import com.ingamedeo.eiriewebtext.utils.DatabaseUtils;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -51,7 +52,7 @@ public class ManageAccountsActivity extends AppCompatActivity implements LoaderM
         setContentView(R.layout.activity_manage_accounts);
         ButterKnife.bind(this);
 
-        contentUri = Utils.generateContentUri(Constants.TableSelect.ACCOUNTS);
+        contentUri = DatabaseUtils.generateContentUri(Constants.TableSelect.ACCOUNTS);
 
         initUI(savedInstanceState);
 
@@ -132,7 +133,7 @@ public class ManageAccountsActivity extends AppCompatActivity implements LoaderM
         return new CursorLoader(
                 this,
                 contentUri,
-                AccountsTable.COLUMNS,
+                new String[] {AccountsTable._ID, AccountsTable.FULLNAME, AccountsTable.EMAIL},
                 null,
                 null,
                 AccountsTable.FULLNAME + " ASC");

@@ -10,6 +10,8 @@ import android.util.Pair;
 
 import com.ingamedeo.eiriewebtext.Constants;
 import com.ingamedeo.eiriewebtext.Utils;
+import com.ingamedeo.eiriewebtext.WebTextAdapter;
+import com.ingamedeo.eiriewebtext.utils.DatabaseUtils;
 
 import java.util.ArrayList;
 
@@ -24,8 +26,8 @@ public class DbAdapter {
 
     public DbAdapter(Context c) {
         this.c = c;
-        webTextsUri = Utils.generateContentUri(Constants.TableSelect.WEBTEXT);
-        accountsUri = Utils.generateContentUri(Constants.TableSelect.ACCOUNTS);
+        webTextsUri = DatabaseUtils.generateContentUri(Constants.TableSelect.WEBTEXT);
+        accountsUri = DatabaseUtils.generateContentUri(Constants.TableSelect.ACCOUNTS);
     }
 
     private ContentValues createWebTextContentValues(String fromUsr, String toUsr, byte[] content, long timestamp) {
@@ -69,7 +71,7 @@ public class DbAdapter {
 
         ArrayList<String> phoneNumbers = new ArrayList<>();
 
-        Cursor cursor = c.getContentResolver().query(accountsUri, null, null, null, null);
+        Cursor cursor = c.getContentResolver().query(accountsUri, null,null, null, null);
 
         if(cursor!=null && cursor.moveToFirst() && cursor.getCount()>0){
             do{
@@ -95,10 +97,14 @@ public class DbAdapter {
 
     public int countAccounts() {
         Cursor cursor = c.getContentResolver().query(accountsUri, null, null, null, null);
-        int count = Utils.getCursorDataCount(cursor);
+        int count = DatabaseUtils.getCursorDataCount(cursor);
         //cursor.close();
         Log.i(Constants.TAG, "N accounts: " + count);
         return count;
+    }
+
+    public int deleteWebtext(String webTextId) {
+        return c.getContentResolver().delete(webTextsUri, WebTextsTable._ID+" = ?", new String[] {webTextId});
     }
 
     /*

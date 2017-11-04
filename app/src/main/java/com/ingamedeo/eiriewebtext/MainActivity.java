@@ -8,6 +8,8 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.ContactsContract;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -15,42 +17,55 @@ import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.widget.CursorAdapter;
-import android.support.v4.widget.ResourceCursorAdapter;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.text.format.DateFormat;
 import android.util.Log;
 import android.util.Pair;
+import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AbsListView;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
 import android.widget.FilterQueryProvider;
 import android.widget.Filterable;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.github.jorgecastilloprz.FABProgressCircle;
-import com.ingamedeo.eiriewebtext.db.AccountsTable;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.MobileAds;
 import com.ingamedeo.eiriewebtext.db.WebTextsTable;
+import com.ingamedeo.eiriewebtext.utils.DatabaseUtils;
+import com.ingamedeo.eiriewebtext.utils.NetworkUtils;
+import com.ingamedeo.eiriewebtext.utils.PermissionsUtils;
+import com.ingamedeo.eiriewebtext.utils.UIUtils;
 
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import io.github.tslamic.prem.Premiumer;
+import io.github.tslamic.prem.PremiumerBuilder;
+import io.github.tslamic.prem.PremiumerListener;
+import io.github.tslamic.prem.Purchase;
+import io.github.tslamic.prem.SkuDetails;
 
-public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
+public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>, PremiumerListener {
 
     private static final int LOADER_ID = 1;
     private static final int CONTACTS_LOADER_ID = 2;
@@ -72,6 +87,9 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     @BindView(R.id.textField)
     EditText textField;
 
+    @BindView(R.id.charsRemaining)
+    TextView charsRemaining;
+
     @BindView(R.id.fabProgressCircle)
     FABProgressCircle fabProgressCircle;
 
@@ -81,12 +99,19 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     @BindView(R.id.sentWebTextList)
     ListView sentWebTextList;
 
+    @BindView(R.id.adView)
+    AdView mAdView;
+
     private WebTextAdapter webTextAdapter = null;
     private ArrayAdapter<String> spinnerAdapter = null;
     private AutoContactsAdapter autoContactsAdapter = null;
     private ContactsLoader contactsLoader = null;
 
     private Uri contentUri = null;
+
+    private Premiumer premiumer = null;
+
+    private boolean showHideAdsMenuEntry = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,12 +121,12 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
         setSupportActionBar(toolbar);
 
-        contentUri = Utils.generateContentUri(Constants.TableSelect.WEBTEXT);
+        contentUri = DatabaseUtils.generateContentUri(Constants.TableSelect.WEBTEXT);
         contactsLoader = new ContactsLoader();
 
         initUI();
 
-        if (Utils.checkAndRequestPermissions(MainActivity.this)) {
+        if (PermissionsUtils.checkAndRequestPermissions(MainActivity.this)) {
             //Utils.showWhitelistDialog(MainActivity.this);
 
             //Nothing to init here?
@@ -116,6 +141,16 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         * I've found out that restart does exactly the same thing as init if our loader doesn't exist yet
         */
 
+        MobileAds.initialize(this, Constants.ADMOB_APP_ID);
+
+        //In-app billing, disable ads
+        premiumer = PremiumerBuilder.with(this)
+                .sku("noads")
+                .listener(this)
+                .build();
+
+        //Toast.makeText(this, "> DEBUG VERSION <", Toast.LENGTH_LONG).show();
+        //Utils.showDebugDialog(this);
     }
 
     private void initUI() {
@@ -134,7 +169,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                     Bundle args = new Bundle();
                     args.putString(CONTACTS_LOADER_ARGS_KEY, constraint.toString());
 
-                    if (Utils.checkPermissions(MainActivity.this)) {
+                    if (PermissionsUtils.checkPermissions(MainActivity.this)) {
                         getSupportLoaderManager().restartLoader(CONTACTS_LOADER_ID, args, contactsLoader);
                     }
 
@@ -151,18 +186,18 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             @Override public void onClick(View view) {
 
                 //*** Input validation ***
-                if (!Utils.runInputCheck(toNumber) && !Utils.runInputCheck(textField)) {
+                if (!UIUtils.runInputCheck(toNumber) && !UIUtils.runInputCheck(textField)) {
                     toNumber.setError(getString(R.string.errorTo));
                     textField.setError(getString(R.string.errorText));
                     return;
                 }
 
-                if (!Utils.runInputCheck(toNumber)) {
+                if (!UIUtils.runInputCheck(toNumber)) {
                     toNumber.setError(getString(R.string.errorTo));
                     return;
                 }
 
-                if (!Utils.runInputCheck(textField)) {
+                if (!UIUtils.runInputCheck(textField)) {
                     textField.setError(getString(R.string.errorText));
                     return;
                 }
@@ -187,6 +222,9 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         sentWebTextList.setTranscriptMode(AbsListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
         sentWebTextList.setAdapter(webTextAdapter);
 
+        //Register for Context menu for all items in ListView
+        registerForContextMenu(sentWebTextList);
+
         //Go down the ListView
         webTextAdapter.registerDataSetObserver(new DataSetObserver() {
             @Override
@@ -195,9 +233,89 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 sentWebTextList.setSelection(webTextAdapter.getCount() - 1);
             }
         });
+
+        textField.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+                int webTextsRemaining = (int) Math.ceil((double)s.length()/(double)(Constants.MAX_WEBTEXT_LEN/Constants.MAX_WEBTEXT_NUM));
+
+                StringBuilder stringBuilder = new StringBuilder();
+                stringBuilder.append(Constants.MAX_WEBTEXT_LEN-s.length())
+                        .append("/")
+                        .append(Constants.MAX_WEBTEXT_LEN)
+                        .append(getString(R.string.chars_remaining))
+                        .append("(")
+                        .append(webTextsRemaining)
+                        .append("/")
+                        .append(Constants.MAX_WEBTEXT_LEN/(Constants.MAX_WEBTEXT_LEN/Constants.MAX_WEBTEXT_NUM))
+                        .append(")");
+
+                charsRemaining.setText(stringBuilder.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
+        });
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v,
+                                    ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.context_menu, menu);
+    }
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+
+        if (sentWebTextList==null) {
+            return super.onContextItemSelected(item);
+        }
+
+        switch (item.getItemId()) {
+            case R.id.delete_webtext:
+
+                Cursor c = (Cursor) sentWebTextList.getItemAtPosition(info.position);
+                DatabaseUtils.getDbAdapter(MainActivity.this).deleteWebtext(String.valueOf(c.getInt(c.getColumnIndex(WebTextsTable._ID))));
+
+                return true;
+            case R.id.info_webtext:
+
+                Cursor c1 = (Cursor) sentWebTextList.getItemAtPosition(info.position);
+
+                String fromNumber = c1.getString(c1.getColumnIndex(WebTextsTable.FROMUSER));
+                String toNumber = c1.getString(c1.getColumnIndex(WebTextsTable.TOUSER));
+                String dateTime = Utils.fromUTCTimestampToString(c1.getInt(c1.getColumnIndex(WebTextsTable.TIMESTAMP)));
+                String name = DatabaseUtils.getContactName(this, toNumber);
+
+                String htmlBody = null;
+
+                if (name==null) {
+                    htmlBody = "<b>"+getResources().getString(R.string.to)+"</b>"+toNumber+"<br><b>"+getResources().getString(R.string.from)+"</b>"+fromNumber+"<br><b>"+getResources().getString(R.string.sentat)+"</b>"+dateTime;
+                } else {
+                    htmlBody = "<b>"+getResources().getString(R.string.to)+"</b>"+name+" &lt;"+toNumber+"&gt;<br><b>"+getResources().getString(R.string.from)+"</b>"+fromNumber+"<br><b>"+getResources().getString(R.string.sentat)+"</b>"+dateTime;
+                }
+
+                UIUtils.showGenericYesDialog(MainActivity.this, getString(R.string.webtext_info_title), htmlBody, true);
+
+                return true;
+            default:
+                return super.onContextItemSelected(item);
+        }
     }
 
     private void updateSpinnerData() {
+
         Log.i(Constants.TAG, "*** spinnerAdapter update ***");
 
         //Get customers phone numbers ready for Spinner
@@ -236,7 +354,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
     private String[] getCustomersPhoneNumbers() {
         ArrayList<String> arrayListResult = new ArrayList<>();
-        String[] customerLines = Utils.getDbAdapter(MainActivity.this).accountsToPhoneStringArray();
+        String[] customerLines = DatabaseUtils.getDbAdapter(MainActivity.this).accountsToPhoneStringArray();
 
         for (String lines : customerLines) {
             StringTokenizer tokens = new StringTokenizer(lines, ";");
@@ -257,6 +375,17 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     }
 
     @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+
+        MenuItem item = menu.findItem(R.id.action_hideads);
+        if (item!=null) {
+            item.setVisible(showHideAdsMenuEntry);
+        }
+
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
@@ -268,6 +397,10 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             Intent accountsIntent = new Intent(MainActivity.this, ManageAccountsActivity.class);
             startActivityForResult(accountsIntent, ACCOUNTS_MANAGER_REQUEST);
             return true;
+        } else if (id == R.id.action_hideads) {
+            if (premiumer!=null) {
+                premiumer.purchase(this);
+            }
         }
 
         return super.onOptionsItemSelected(item);
@@ -275,11 +408,14 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
 
-        //Handle result
-        if (requestCode==ACCOUNTS_MANAGER_REQUEST) {
-            updateSpinnerData();
+        if (!premiumer.handleActivityResult(requestCode, resultCode, data)) {
+            super.onActivityResult(requestCode, resultCode, data);
+
+            //Handle result
+            if (requestCode==ACCOUNTS_MANAGER_REQUEST) {
+                updateSpinnerData();
+            }
         }
     }
 
@@ -326,16 +462,18 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             //Convert to MSISDN format
             String fromLine = Utils.ieNumberToMSISDN(params[0]);
 
-            Pair<String, String> emailAndPass = Utils.getDbAdapter(MainActivity.this).getEmailAndPassFromLine(params[0]);
+            Pair<String, String> emailAndPass = DatabaseUtils.getDbAdapter(MainActivity.this).getEmailAndPassFromLine(params[0]);
+
+            //Log.i(Constants.TAG, "emailAndPass: " + emailAndPass.toString());
 
             if (emailAndPass==null) {
                 return false;
             }
 
-            boolean result = Utils.sendWebText(emailAndPass.first, emailAndPass.second, fromLine, params[1], params[2]);
+            boolean result = NetworkUtils.sendWebText(emailAndPass.first, emailAndPass.second, fromLine, params[1], params[2]);
 
             if (result) {
-                Utils.getDbAdapter(MainActivity.this).addWebText(params[0], params[1], params[2]);
+                DatabaseUtils.getDbAdapter(MainActivity.this).addWebText(params[0], params[1], params[2]);
             }
 
             return result;
@@ -358,6 +496,94 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 showSnackBar(getString(R.string.webtext_error), Snackbar.LENGTH_LONG);
                 fabProgressCircle.hide();
             }
+        }
+    }
+
+    @Override
+    public void onShowAds() {
+        if (mAdView!=null) {
+            mAdView.setVisibility(View.VISIBLE);
+            AdRequest adRequest = new AdRequest.Builder().build();
+            mAdView.loadAd(adRequest);
+        }
+    }
+
+    @Override
+    public void onHideAds() {
+        if (mAdView!=null) {
+            mAdView.setVisibility(View.GONE);
+        }
+
+        showHideAdsMenuEntry = false;
+        invalidateOptionsMenu();
+    }
+
+    @Override
+    public void onBillingAvailable() {
+
+    }
+
+    @Override
+    public void onBillingUnavailable() {
+
+    }
+
+    @Override
+    public void onSkuDetails(@Nullable SkuDetails details) {
+
+    }
+
+    @Override
+    public void onSkuConsumed() {
+
+    }
+
+    @Override
+    public void onFailedToConsumeSku() {
+
+    }
+
+    @Override
+    public void onPurchaseRequested(@Nullable String payload) {
+
+    }
+
+    @Override
+    public void onPurchaseDetails(@Nullable Purchase purchase) {
+
+    }
+
+    @Override
+    public void onPurchaseSuccessful(@NonNull Purchase purchase) {
+        Toast.makeText(MainActivity.this, R.string.purchase_ok_toast, Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void onPurchaseBadResult(int resultCode, @Nullable Intent data) {
+
+    }
+
+    @Override
+    public void onPurchaseBadResponse(@Nullable Intent data) {
+
+    }
+
+    @Override
+    public void onPurchaseFailedVerification() {
+
+    }
+
+    @Override protected void onStart() {
+        super.onStart();
+        if (premiumer!=null) {
+            premiumer.bind();
+        }
+    }
+
+    @Override protected void onStop() {
+        super.onStop();
+        if (premiumer!=null) {
+            premiumer.unbind();
         }
     }
 
