@@ -13,3 +13,5 @@ Features:
 • Remaining allowance<br>
 • Support for mixed (eir+meteor) accounts<br>
 • Backup your messages to Google Drive<br>
+
+Download from Google Play: https://play.google.com/store/apps/details?id=com.ingamedeo.eiriewebtext
